@@ -8,6 +8,9 @@ import requests
 import sys
 import os
 
+# we read the input file as csv since we need to provide `prog` info
+import csv
+
 # Our request will be made to the following URI:
 # https://catalog.metu.edu.tr/course.php?prog=236&course_code=<course code>
 # The GET request will send us an HTML page, from which we want to extract
@@ -21,17 +24,16 @@ import os
 class LookupException(Exception):
     pass
 
-def getCourseHTML(course_code):
+def getCourseHTML(course_info):
     metuURL = "https://catalog.metu.edu.tr/course.php"
-    payload = { "prog": 236, "course_code": course_code }
 
-    r = requests.get(metuURL, params=payload)
+    r = requests.get(metuURL, params=course_info)
     if (r.status_code != 200):
         raise LookupException("Failed to get page!")
     return r.text
 
-def getCourseDescription(course_code):
-    html_source = getCourseHTML(course_code)
+def getCourseDescription(course_info):
+    html_source = getCourseHTML(course_info)
     soup = BeautifulSoup(html_source, 'html.parser')
 
     # We have obtained the description text we desire, but we still
@@ -67,10 +69,12 @@ def main():
         raise Exception("The specified file does not exist!")
 
     with open(filename, 'r') as file:
-        for line in file:
+        reader = csv.reader(file)
+        for row in reader:
             try:
-                # we strip the line of its newline character
-                print(getCourseDescription(line.rstrip()))
+                # we strip the line of its newline character for compatibility
+                course_info = { "prog": row[0], "course_code": row[1].rstrip() }
+                print(getCourseDescription(course_info))
             # we may obtain AttributeErrors from decompose() calls
             # it's safe to ignore them
             except (LookupException, AttributeError):
