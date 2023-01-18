@@ -24,6 +24,10 @@ import csv
 class LookupException(Exception):
     pass
 
+def getiframeContent(iframe_src):
+    r = requests.get(iframe_src)
+    return r.text
+
 def getCourseHTML(course_info):
     metuURL = "https://catalog.metu.edu.tr/course.php"
 
@@ -54,8 +58,13 @@ def getCourseDescription(course_info):
         if iframeCount == 2:
             iframe.decompose()
             break
-        iframeCount += 1
 
+        # we attempt to replace the iframe with its text content
+        content = BeautifulSoup(getiframeContent(iframe['src']), 'html.parser')
+        iframe.replaceWith(content.get_text())
+
+        iframeCount += 1
+    
     # returning with get_text() removes all HTML tags, with only text remaining
     return description.get_text()
 
@@ -71,10 +80,19 @@ def main():
     with open(filename, 'r') as file:
         reader = csv.reader(file)
         for row in reader:
+            # we want to skip blank lines for readability
+            if len(row) == 0:
+                continue
+
             try:
                 # we strip the line of its newline character for compatibility
                 course_info = { "prog": row[0], "course_code": row[1].rstrip() }
+
+                # we write info to stderr for logging
+                print("Fetching course {}".format(row[1]), file=sys.stderr)
                 print(getCourseDescription(course_info))
+                print("Fetch successful!", file=sys.stderr)
+
             # we may obtain AttributeErrors from decompose() calls
             # it's safe to ignore them
             except (LookupException, AttributeError):
