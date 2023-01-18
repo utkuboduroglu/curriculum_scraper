@@ -43,8 +43,7 @@ def getCourseDescription(course_code):
 
     # the program outcomes matrix does not display correctly;
     # hence we decompose all tables
-    for table in description.find_all('table'):
-        table.decompose()
+    description.table.decompose()
 
     # the above does not work for the outcome matrix, instead we may
     # attempt to remove the third iframe object (lol what :)
@@ -55,8 +54,8 @@ def getCourseDescription(course_code):
             break
         iframeCount += 1
 
-
-    return description
+    # returning with get_text() removes all HTML tags, with only text remaining
+    return description.get_text()
 
 
 def main():
